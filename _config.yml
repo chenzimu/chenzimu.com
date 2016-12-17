@@ -64,7 +64,7 @@ pagination_dir: page
 # Extensions
 ## Plugins: http://hexo.io/plugins/
 ## Themes: http://hexo.io/themes/
-theme: tranquilpeak
+theme:  cactus-dark
 
 #avatar
 avatar: /images/avatar.jpg
@@ -79,7 +79,7 @@ social:
 deploy:
   type: git
   repo:
-    github : git@github.com:chenzimu/chenzimu.github.io.git,master
+    github : git@github.com:muzichen/muzichen.github.io.git,master
   # branch: master
 
 #SEO
