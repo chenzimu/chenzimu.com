@@ -1,180 +1,147 @@
-title: PHP依赖注入简单介绍
+title: 控制反转(Ioc)和依赖注入(DI)
 date: 2016-12-16 22:07:47
 categories: [PHP,'设计模式']
-tags: ['依赖注入','PHP','Laravel']
+tags: ['依赖注入','PHP','Laravel','控制反转','DI','Ioc']
 ---
 
-## 什么是依赖注入
+# 问题的提出-紧耦合(Tight Coupling)
 
-依赖注入的一种软件的设计模式，依赖注入解决的是对象依赖的问题。
-
-## 不使用依赖注入的情况
-
-假设有一个类A，需要使用类B和类C的对象，如果不使用依赖注入的话通常会这样写代码:
+从一个例子开始，看下边一段代码：
 
 ```php
 
-    class B {
-        public function say() {
-            echo 'I am b';
-        }
+	class Address {
+
     }
 
-    class C {
-        public function say() {
-            echo 'I am c';
-        }
-    }
+    class Customer {
 
-    class A {
+        private $address;
 
-        private $b;
-        private $c;
         public function __construct()
         {
-            $this->b = new B();
-            $this->c = new C();
+            $this->address = new Address();
         }
 
-        public function sayB() {
-            return $this->b->say();
-        }
-
-        public function sayC() {
-            return $this->c->say();
-        }
     }
-
-    $a = new A();
-
-    echo $a->sayB();
-
-    echo $a->sayC();
 ```
 
-上边的代码乍看没有问题，但是会发现在A的构造函数中我们需要先对B和C进行实例化，然后才能调用BC中的方法。所以A是严重的依赖于BC的，因为此时BC中并没有构造函数，所以在对BC进行实例化的时候不用传递任何参数。试想这样一种情况，如果我们需要对BC添加构造函数，并在构造函数中添加参数，如：
+假如有一个Customer类，这个类需要使用Address类的对象，换句话说Customer类是依赖于Address对象的，这样的情况会有下边几个问题：
+
+1. 创建address对象的控制权在类Customer手里;
+2. Customer类在自身的构造函数中直接对Address类进行引用对实例化，这就造成了Customer类和Address类的紧耦合;
+3. Customer知晓Address类的具体的类型以及所需的参数等，如果Customer需要使用其他类型的Address类(比如OfficeAddress或HomeAddress)，这样Customer类也会发生相应的变化。
+
+> 所以如果在Customer类中Address类实例化失败的话，就会导致整个Customer类执行失败。
+
+# 问题的解决
+
+解决该问题的关键就在于将Address类实例化的控制权从Customer类转移到别人手中。换句话说如果我们可以将Address类实例化的控制权反转给第三方的一个方法，这个问题就能解决了。这个解决方法就是*控制反转*。
+
+# 控制反转(Ioc)的原则
+
+*Do not call us we will call you*
+
+这句话来自好莱坞，这是好莱坞对待面试演员者的的原则。将这句话表达的意思应用到Customerr类中就是Address类对Customer类说：“我不需要你来对我进行实例化，我会利用别的方法实例化我自己，你该干嘛干嘛吧！”。
+
+## Ioc的两个原则
+
+1. 主类(这里是Customer类)不能直接用来实现依赖类(这里是Address类),所有的类都必须依赖于一层抽象。该抽象可以是一个接口(interface),也可以是一个抽象类(acstract class);
+2. 抽象层不能依赖于实现细节，但是实现的细节必须依赖于抽象层。
+
+# Ioc的实现方法
+
+Ioc只是一个停留在理论方面的东西，如果谈到具体的实现方法，这里就需要提到*依赖注入*(dependency injection)了。一共有4种实现依赖注入的方法:
+
+1. 构造函数注入
+2. setter和getter方法注入
+3. 接口实现注入
+4. 服务定位器(service locator)注入
+
+## 构造函数注入
+
+这个方法很简单，就是将类的实例化或者实现直接传到类的构造函数中。
 
 
 ```php
 
-    class B {
+	class Address {
 
-        private $words;
-
-        public function __construct($words)
-        {
-            $this->words = $words;
-        }
-
-        public function say() {
-            echo $this->words;
-        }
     }
 
-    class C {
+    class Customer {
 
-        private $words;
+        private $address;
 
-        public function __construct($words)
+        public function __construct(Address $address)
         {
-            $this->words = $words;
+            $this->address = new Address();
         }
 
-        public function say() {
-            echo $this->words;
-        }
     }
 
-    class A {
-        private $b;
-        private $c;
-        public function __construct()
-        {
-            $this->b = new B('I am b from constructor');
-            $this->c = new C('I am c from constructor');
-        }
-
-        public function sayB() {
-            return $this->b->say();
-        }
-
-        public function sayC() {
-            return $this->c->say();
-        }
-    }
-
-    $a = new A();
-
-    echo $a->sayB();
-
-    echo $a->sayC();
 ```
 
-从上边的代码可以看出如果在BC中添加构造函数并添加参数的话，相应的A中构造函数对BC的实例化也需要进行修改(因为A与BC是高度耦合的)。这就违反了软件设计中的单一职责原则(single responsibility)，A不仅仅需要负责对自身的属性和方法的定义，还需要关心自己依赖的对象BC的实例化，而依赖注入就是为了解决这一问题的。
+## setter和getter方法注入
 
-## 使用依赖注入
-
+通过类中的setter和getter方法来实现依赖的注入。
 
 ```php
 
+	class Address {
 
-	class B {
-
-        private $words;
-
-        public function __construct($words)
-        {
-            $this->words = $words;
-        }
-
-        public function say() {
-            echo $this->words;
-        }
     }
 
-    class C {
+    class Customer {
 
-        private $words;
+        private $address;
 
-        public function __construct($words)
+        public function getter()
         {
-            $this->words = $words;
+            return $this->address;
         }
 
-        public function say() {
-            echo $this->words;
-        }
-    }
-
-    class A {
-        private $b;
-        private $c;
-
-        // 将A需要依赖对象传递到A的构造函数中
-        public function __construct(B $b, C $c)
+        public function setter(Address $address)
         {
-            $this->b = $b;
-            $this->c = $c;
+
+            $this->address= $address;
+
         }
 
-        public function sayB() {
-            return $this->b->say();
-        }
-
-        public function sayC() {
-            return $this->c->say();
-        }
     }
-
-    $a = new A(new B('I am b outside a'),new C('I am c outside a'));
-
-    echo $a->sayB();
-
-    echo $a->sayC();
 
 ```
 
-在上边的代码中，可以看到在A的构造函数中，将A需要的依赖BC传入到A的构造函数中，这样就将BC初始化的任务交给了“其它人”，这里可以对比没有用依赖注入的例子，在没有使用依赖注入的例子中，对BC进行初始化的任务是由A自身完成的。所以，使用依赖注入之后，A就只负责关心对自身的方法以及属性的定义，而对于自身的依赖BC或者别的依赖则不需要关心它们是怎么实现的，只需要调用它们就可以了，这就解决了上例中所违反的单一职责原则(single responsibility)。
+## 接口实现注入
 
-*未完待续*
+```php
 
+	interface AddressInterface {
+        public function setAddress;
+    }
+
+
+    class Address implements AddressInterface {
+        public function setAddress() {
+            echo 'set address';
+        }
+    }
+
+    class Customer {
+
+        private $address;
+
+        public function __construct(Address $address)
+        {
+            $this->address = $address;
+        }
+    }
+
+```
+
+## 服务定位器(service locator)注入
+
+Customer类通过服务定位器获取到Address类的实例对象，服务定位器并不会对Address进行实例化，它只是提供了一个获取到实例化对象的服务的方法。
+
+
+文章来源自:https://www.codeproject.com/Articles/29271/Design-pattern-Inversion-of-control-and-Dependency
